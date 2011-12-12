@@ -19,30 +19,29 @@
  *
  * If you can tell..it's a 6 =)
  */
-static unsigned short chip8_fontset[80] =
-{
-  0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-  0x20, 0x60, 0x20, 0x20, 0x70, // 1
-  0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-  0xF0, 0x10, 0xF0, 0x10, 0x10, // 3
-  0x90, 0x90, 0xF0, 0x10, 0x10, // 4   
-  0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5  
-  0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-  0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-  0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8  
-  0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9  
-  0xF0, 0x90, 0xF0, 0x90, 0x90, // A  
-  0xE0, 0x90, 0xE0, 0x90, 0xE0, // B  
-  0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-  0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-  0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-  0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+static unsigned char chip8_fontset[80] =
+{ 
+  0xF0, 0x90, 0x90, 0x90, 0xF0, //0 
+  0x20, 0x60, 0x20, 0x20, 0x70, //1 
+  0xF0, 0x10, 0xF0, 0x80, 0xF0, //2 
+  0xF0, 0x10, 0xF0, 0x10, 0xF0, //3 
+  0x90, 0x90, 0xF0, 0x10, 0x10, //4 
+  0xF0, 0x80, 0xF0, 0x10, 0xF0, //5 
+  0xF0, 0x80, 0xF0, 0x90, 0xF0, //6 
+  0xF0, 0x10, 0x20, 0x40, 0x40, //7 
+  0xF0, 0x90, 0xF0, 0x90, 0xF0, //8 
+  0xF0, 0x90, 0xF0, 0x10, 0xF0, //9 
+  0xF0, 0x90, 0xF0, 0x90, 0x90, //A 
+  0xE0, 0x90, 0xE0, 0x90, 0xE0, //B 
+  0xF0, 0x80, 0x80, 0x80, 0xF0, //C 
+  0xE0, 0x90, 0x90, 0x90, 0xE0, //D 
+  0xF0, 0x80, 0xF0, 0x80, 0xF0, //E 
+  0xF0, 0x80, 0xF0, 0x80, 0x80  //F 
 };
 
 class chip8
 {
   public:
-    void initialize();
     bool loadGame(const char *);
     void emulateCycle();
 
@@ -62,6 +61,8 @@ class chip8
     
     unsigned char delay_timer;
     unsigned char sound_timer;
+    
+    void initialize();
 };
 
 void chip8::initialize()
@@ -72,10 +73,10 @@ void chip8::initialize()
   sp     = 0;
 
   // Set all of our arrays to zero
-  memset(V, 0, 16);
-  memset(key, 0, 16);
-  memset(stack, 0, 16);
   memset(gfx, 0, 2048);
+  memset(stack, 0, 16);
+  memset(key, 0, 16);
+  memset(V, 0, 16);
   memset(memory, 0, 4096);
 
   // Install the font
@@ -94,6 +95,7 @@ void chip8::initialize()
 // Reads a game into memory starting at 0x200 (512)
 bool chip8::loadGame(const char* gameName)
 {
+  initialize();
   printf("Loading: %s\n", gameName);
 
   FILE *fp = fopen(gameName, "rb");
@@ -133,6 +135,8 @@ bool chip8::loadGame(const char* gameName)
   
   fclose(fp);
   free(buffer);
+
+  return true;
 }
 
 void chip8::emulateCycle()
@@ -148,21 +152,22 @@ void chip8::emulateCycle()
       switch (opcode & 0x000F)
       {
         case 0x0000: // 0x00E0 clears screen
+          for (int i = 0; i < 2048; ++i)
+            gfx[i] = 0x0;
+          drawFlag = true;
+          pc += 2;
           break;
 
         case 0x000E: // 0x00EE returns from subroutine
+          --sp;
+          pc = stack[sp];
+          pc += 2;
           break;
 
         default:
           printf("Unknown opcode [0x0000]: 0x%X\n", opcode);
           break;
       }
-      break;
-
-    case 0x0004: // Skips the next instruction if VX != NN
-      V[0xF] = (V[Y] > (0xFF - V[X]) ? 1 : 0);
-      V[X] += V[Y];
-      pc += 2;
       break;
 
     case 0x1000: // Jumps to address NNN
@@ -319,13 +324,12 @@ void chip8::emulateCycle()
           break;
 
         default:
-          printf("Unknown opcode [0x0000]: 0x%X\n", opcode);
+          printf("Unknown opcode [0xE000]: 0x%X\n", opcode);
           break;
       }
       break;
 
     case 0xF000: // Handling opcodes in the F range..there are a few.
-      {
         switch (opcode & 0x00FF)
         {
           case 0x0007:
@@ -398,12 +402,10 @@ void chip8::emulateCycle()
             break;
 
           default:
-            printf("Unknown opcode: 0x%X\n", opcode);
+            printf("Unknown opcode: [0x000F]: 0x%X\n", opcode);
             break;
         }
-
         break;
-      }
     
     default:
       printf("Unknown opcode: 0x%X\n", opcode);
