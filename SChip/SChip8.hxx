@@ -46,7 +46,7 @@ class chip8
     void emulateCycle();
 
     bool drawFlag;
-    unsigned char gfx[64 * 32];   // The screen
+    unsigned char gfx[128 * 64];   // The screen
     unsigned short key[16];       // Keypad
     
   private:
@@ -55,12 +55,14 @@ class chip8
     unsigned short sp;            // Stack pointer
     unsigned short opcode;
 
-    unsigned char V[16];         // Register go from V0 - VF
+    unsigned short V[16];         // Register go from V0 - VF
     unsigned short stack[16];
     unsigned char memory[4096];   // 4096 bytes of memory
     
     unsigned char delay_timer;
     unsigned char sound_timer;
+
+    bool schip_gfx;
     
     void initialize();
 };
@@ -73,7 +75,7 @@ void chip8::initialize()
   sp     = 0;
 
   // Set all of our arrays to zero
-  memset(gfx, 0, 2048);
+  memset(gfx, 0, 8192);
   memset(stack, 0, 16);
   memset(key, 0, 16);
   memset(V, 0, 16);
@@ -149,23 +151,33 @@ void chip8::emulateCycle()
   switch (opcode & 0xF000)
   {
     case 0x0000: // Two opcodes have codes starting with 0x00
-      switch (opcode & 0x000F)
+      switch (opcode & 0x00FF)
       {
-        case 0x0000: // 0x00E0 clears screen
+        case 0x00E0: // 0x00E0 clears screen
           for (int i = 0; i < 2048; ++i)
             gfx[i] = 0x0;
           drawFlag = true;
           pc += 2;
           break;
 
-        case 0x000E: // 0x00EE returns from subroutine
+        case 0x00EE: // 0x00EE returns from subroutine
           --sp;
           pc = stack[sp];
           pc += 2;
           break;
 
+        case 0x00FE:
+          schip_gfx = false;
+          pc += 2;
+          break;
+
+        case 0x00FF:
+          schip_gfx = true;
+          pc += 2;
+          break;
+
         default:
-          printf("Unknown opcode case [0x0000]: 0x%X\n", opcode);
+          printf("Unknown opcode [0x0000]: 0x%X\n", opcode);
           break;
       }
       break;
@@ -257,7 +269,7 @@ void chip8::emulateCycle()
             break;
 
           default:
-            printf("Unknown opcode [0x0008]: 0x%X\n", opcode);
+            printf("Unknown opcode [0x8000]: 0x%X\n", opcode);
             break;
         }
 
@@ -274,7 +286,7 @@ void chip8::emulateCycle()
       break;
 
     case 0xB000: // Jumps to address NNN + V0
-      pc = (opcode & 0x0FFF) + V[0];
+      pc = V[0] + (opcode & 0x0FFF);
       break;
 
     case 0xC000:
@@ -282,7 +294,7 @@ void chip8::emulateCycle()
       pc += 2;
       break;
 
-    // DXYN draws a sprite at VX, VY that is N pixels high.
+    // DXYN draws a pixel at VX, VY that is N pixels high.
     case 0xD000:
       {
         unsigned short x = V[X];
@@ -324,7 +336,7 @@ void chip8::emulateCycle()
           break;
 
         default:
-          printf("Unknown opcode [0x000E]: 0x%X\n", opcode);
+          printf("Unknown opcode [0xE000]: 0x%X\n", opcode);
           break;
       }
       break;
@@ -412,13 +424,11 @@ void chip8::emulateCycle()
       break;
   }
 
-  if (delay_timer > 0) 
-    --delay_timer;
+  if (delay_timer > 0) --delay_timer;
 
   if (sound_timer > 0)
   {
-    if (sound_timer == 1) 
-      printf("BEEP!\n");
+    if (sound_timer == 1) printf("BEEP!\n");
     --sound_timer;
   }
 }

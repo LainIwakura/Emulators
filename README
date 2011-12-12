@@ -1,1 +1,7 @@
 Just emulators I might mess around with.
+
+Currently have working
+-Chip8. Only works on Linux (test with Arch Linux)
+
+Currently working on:
+-SuperChip8 (SChip). Extended version of Chip8
