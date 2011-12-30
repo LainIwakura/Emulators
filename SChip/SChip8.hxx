@@ -55,7 +55,7 @@ class chip8
     unsigned short sp;            // Stack pointer
     unsigned short opcode;
 
-    unsigned short V[16];         // Register go from V0 - VF
+    unsigned char V[16];         // Register go from V0 - VF
     unsigned short stack[16];
     unsigned char memory[4096];   // 4096 bytes of memory
     
