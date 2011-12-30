@@ -4,7 +4,8 @@ Currently have working
 -Chip8. Only works on Linux (test with Arch Linux)
 
 Currently working on:
--Gameboy. Translating a JS Gameboy Emulator to C++
+-Emulator research. Next emulator might be a Z80 or Gameboy, which
+ is a modified Z80
 
 On hold:
 -SuperChip8 (SChip). Extended version of Chip8
